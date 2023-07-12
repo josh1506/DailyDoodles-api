@@ -84,6 +84,7 @@ THIRD_PARTY_APPS = [
 
 LOCAL_APPS = [
     "dailydoodles_api.users",
+    "dailydoodles_api.tasks"
     # Your stuff: custom apps go here
 ]
 # https://docs.djangoproject.com/en/dev/ref/settings/#installed-apps
@@ -232,7 +233,7 @@ ADMINS = [("""Joshua Michael Jabor""", "jmjabor@gmail.com")]
 MANAGERS = ADMINS
 # https://cookiecutter-django.readthedocs.io/en/latest/settings.html#other-environment-settings
 # Force the `admin` sign in process to go through the `django-allauth` workflow
-DJANGO_ADMIN_FORCE_ALLAUTH = env.bool('DJANGO_ADMIN_FORCE_ALLAUTH', default=False)
+DJANGO_ADMIN_FORCE_ALLAUTH = env.bool("DJANGO_ADMIN_FORCE_ALLAUTH", default=False)
 
 # LOGGING
 # ------------------------------------------------------------------------------
