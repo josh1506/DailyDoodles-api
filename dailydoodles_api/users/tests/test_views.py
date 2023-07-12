@@ -12,11 +12,7 @@ from django.utils.translation import gettext_lazy as _
 from dailydoodles_api.users.forms import UserAdminChangeForm
 from dailydoodles_api.users.models import User
 from dailydoodles_api.users.tests.factories import UserFactory
-from dailydoodles_api.users.views import (
-    UserRedirectView,
-    UserUpdateView,
-    user_detail_view,
-)
+from dailydoodles_api.users.views import UserRedirectView, UserUpdateView, user_detail_view
 
 pytestmark = pytest.mark.django_db
 
