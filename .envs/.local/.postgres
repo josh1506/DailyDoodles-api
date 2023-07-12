@@ -1,0 +1,7 @@
+# PostgreSQL
+# ------------------------------------------------------------------------------
+POSTGRES_HOST=postgres
+POSTGRES_PORT=5432
+POSTGRES_DB=dailydoodles_api
+POSTGRES_USER=CTEDBymppVEpCmFdesuZGkUudoeAPIUn
+POSTGRES_PASSWORD=nGyfWC4wkl1oS1SmuZTuL1LIlThseSWKZF844NFCjjkijHwFN142SrCnIrZ0z10U
