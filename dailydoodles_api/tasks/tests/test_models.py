@@ -45,7 +45,7 @@ class TaskTestCase(TestCase):
         )
 
     def test_created_model(self):
-        self.assertEqual("Test List Title", self.task.title)
+        self.assertEqual("Test Title", self.task.title)
         self.assertEqual("Test description", self.task.description)
         self.assertEqual(self.task_list, self.task.task_list)
         self.assertEqual(False, self.task.is_completed)
@@ -60,8 +60,8 @@ class TaskTestCase(TestCase):
         self.assertEqual(self.task.user, task.user)
 
     def test_update_model(self):
-        updated_title = "Updated List Title"
-        updated_description = "Test description"
+        updated_title = "Updated Title"
+        updated_description = "Updated description"
         updated_status = True
         Task.objects.filter(id=self.task.pk).update(
             title=updated_title, description=updated_description, is_completed=updated_status
