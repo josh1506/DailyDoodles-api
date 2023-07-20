@@ -9,7 +9,7 @@ from dailydoodles_api.tasks.api.v1.views import (
 
 urlpatterns = [
     path("task-lists", TaskListCreateAPIView.as_view(), name="task-lists"),
-    path("task-detail/<int:pk>", TaskDetailAPIView.as_view(), name="task-detail"),
+    path("task-lists/<int:pk>", TaskDetailAPIView.as_view(), name="task-detail"),
     path("tasklist-lists", TaskListListCreateAPIView.as_view(), name="tasklist-lists"),
-    path("tasklist-detail/<int:pk>", TaskListDetailAPIView.as_view(), name="tasklist-detail"),
+    path("tasklist-lists/<int:pk>", TaskListDetailAPIView.as_view(), name="tasklist-detail"),
 ]
