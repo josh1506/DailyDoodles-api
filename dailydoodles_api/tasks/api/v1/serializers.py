@@ -6,7 +6,14 @@ from dailydoodles_api.tasks.models import Task, TaskList
 class TaskSerializer(serializers.ModelSerializer):
     class Meta:
         model = Task
-        exclude = ("created_date", "updated_date", "is_deleted", "deleted_date")
+        fields = (
+            "id",
+            "title",
+            "description",
+            "task_list",
+            "is_completed",
+            "due_date",
+        )
 
 
 class TaskListSerializer(serializers.ModelSerializer):
@@ -14,4 +21,4 @@ class TaskListSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = TaskList
-        exclude = ("created_date", "updated_date", "is_deleted", "deleted_date")
+        fields = ("id", "title", "tasks")
