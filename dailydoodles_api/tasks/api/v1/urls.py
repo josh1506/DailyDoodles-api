@@ -8,8 +8,8 @@ from dailydoodles_api.tasks.api.v1.views import (
 )
 
 urlpatterns = [
-    path("task-lists", TaskListCreateAPIView.as_view(), name="task-lists"),
-    path("task-lists/<int:pk>", TaskDetailAPIView.as_view(), name="task-detail"),
-    path("tasklist-lists", TaskListListCreateAPIView.as_view(), name="tasklist-lists"),
-    path("tasklist-lists/<int:pk>", TaskListDetailAPIView.as_view(), name="tasklist-detail"),
+    path("", TaskListCreateAPIView.as_view(), name="task-lists"),
+    path("<int:pk>", TaskDetailAPIView.as_view(), name="task-detail"),
+    path("lists", TaskListListCreateAPIView.as_view(), name="tasklist-lists"),
+    path("lists/<int:pk>", TaskListDetailAPIView.as_view(), name="tasklist-detail"),
 ]
