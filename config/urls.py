@@ -25,7 +25,7 @@ urlpatterns += [
     path("api/tasks/", include("dailydoodles_api.tasks.api.v1.urls")),
     # DRF auth token
     path("auth-token/", obtain_auth_token),
-    path("api/token/", include("dailydoodles_api.authentications.api.v1.urls")),
+    path("api/", include("dailydoodles_api.authentications.api.v1.urls")),
     path("api/schema/", SpectacularAPIView.as_view(), name="api-schema"),
     path(
         "api/docs/",
