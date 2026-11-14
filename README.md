@@ -36,6 +36,8 @@ Security-related environment variables (all optional):
 | `DJANGO_AUTH_THROTTLE_RATE` | `20/minute` | Per-IP limit for `/api/token`, `/api/register` and `/auth-token/`. Uses the default cache (Redis in production). |
 | `DJANGO_NUM_PROXIES` | `1` (production) | Number of trusted proxies in front of gunicorn (Traefik). Must match the real deployment, or every client shares one throttle bucket (too low) or the client IP can be spoofed (too high). |
 | `DJANGO_CORS_ALLOWED_ORIGINS` | empty | Comma-separated origins allowed to call `/api/` when the SPA is served from a different origin. Empty keeps same-origin only. |
+| `DJANGO_JWT_REQUIRE_SESSION_CLAIM` | `True` | Reject JWTs issued before session binding (every user signs in again once after deploy). `False` accepts old tokens during a short transition window, but already-stolen tokens stay usable while it's off. |
+| `DJANGO_ADMIN_FORCE_ALLAUTH` | `True` (production) | Admin sign-in goes through allauth (5-attempt lockout). Staff accounts need a verified email address. |
 
 ## Basic Commands
 
