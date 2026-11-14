@@ -147,7 +147,8 @@ def test_deactivation_revokes_existing_refresh_tokens():
 
 def test_password_change_does_not_revoke_other_users_tokens():
     # Guard for F1: revocation must be per user. Holds today (nothing is revoked) and must keep holding.
-    victim, bystander = make_user(), make_user("bystander@example.com")
+    victim = make_user()
+    make_user("bystander@example.com")
     bystander_refresh = jwt_pair("bystander@example.com")["refresh"]
     victim.set_password(NEW_PW)
     victim.save()
