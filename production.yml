@@ -46,7 +46,8 @@ services:
     ports:
       - '0.0.0.0:80:80'
       - '0.0.0.0:443:443'
-      - '0.0.0.0:5555:5555'
+      # Flower: host-local only (threat model F8). Reach it with an SSH tunnel: ssh -L 5555:127.0.0.1:5555 <host>
+      - '127.0.0.1:5555:5555'
 
   redis:
     image: redis:6
