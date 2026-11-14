@@ -10,13 +10,24 @@ from dailydoodles_api.tasks.models import Task, TaskList
 # (no existence oracle). IsOwner stays as defence in depth.
 
 
+def owner_id(request) -> int:
+    # Same narrowing as users/api/views.py; IsAuthenticated has already run.
+    assert isinstance(request.user.id, int)
+    return request.user.id
+
+
+def own_tasks(user_id: int) -> Prefetch:
+    # Hide tasks other users may have filed under this list before S1 was fixed.
+    return Prefetch("tasks", queryset=Task.objects.filter(user_id=user_id).order_by("id"))
+
+
 class TaskListCreateAPIView(ListCreateAPIView):
     serializer_class = TaskSerializer
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
         # Explicit order: Postgres heap order changes after UPDATE, which made tasks jump on reload.
-        return Task.objects.filter(user=self.request.user).order_by("id")
+        return Task.objects.filter(user_id=owner_id(self.request)).order_by("id")
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
@@ -27,12 +38,7 @@ class TaskDetailAPIView(RetrieveUpdateDestroyAPIView):
     permission_classes = [IsAuthenticated, IsOwner]
 
     def get_queryset(self):
-        return Task.objects.filter(user=self.request.user)
-
-
-def own_tasks(user):
-    # Hide tasks other users may have filed under this list before S1 was fixed.
-    return Prefetch("tasks", queryset=Task.objects.filter(user=user).order_by("id"))
+        return Task.objects.filter(user_id=owner_id(self.request))
 
 
 class TaskListListCreateAPIView(ListCreateAPIView):
@@ -40,7 +46,8 @@ class TaskListListCreateAPIView(ListCreateAPIView):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        return TaskList.objects.filter(user=self.request.user).order_by("id").prefetch_related(own_tasks(self.request.user))
+        user_id = owner_id(self.request)
+        return TaskList.objects.filter(user_id=user_id).order_by("id").prefetch_related(own_tasks(user_id))
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
@@ -51,4 +58,5 @@ class TaskListDetailAPIView(RetrieveUpdateDestroyAPIView):
     permission_classes = [IsAuthenticated, IsOwner]
 
     def get_queryset(self):
-        return TaskList.objects.filter(user=self.request.user).prefetch_related(own_tasks(self.request.user))
+        user_id = owner_id(self.request)
+        return TaskList.objects.filter(user_id=user_id).prefetch_related(own_tasks(user_id))

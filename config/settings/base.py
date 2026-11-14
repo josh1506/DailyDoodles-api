@@ -328,6 +328,8 @@ REST_FRAMEWORK = {
     ),
     "DEFAULT_PERMISSION_CLASSES": ("rest_framework.permissions.IsAuthenticated",),
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
+    # Brute-force protection for credential endpoints (ScopedRateThrottle, keyed by client IP).
+    "DEFAULT_THROTTLE_RATES": {"auth": env("DJANGO_AUTH_THROTTLE_RATE", default="20/minute")},
 }
 
 # django-cors-headers - https://github.com/adamchainz/django-cors-headers#setup

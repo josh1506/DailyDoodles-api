@@ -139,5 +139,10 @@ LOGGING = {
 SPECTACULAR_SETTINGS["SERVERS"] = [  # noqa: F405
     {"url": "https://example.com", "description": "Production server"},
 ]
+# Traefik is the one proxy in front of gunicorn; trust exactly that many X-Forwarded-For hops
+# so throttling keys on the real client IP and cannot be bypassed with a forged header.
+REST_FRAMEWORK["NUM_PROXIES"] = env.int("DJANGO_NUM_PROXIES", default=1)  # noqa: F405
+# Empty by default (same-origin only, unchanged behaviour). Set when the SPA is served from another origin.
+CORS_ALLOWED_ORIGINS = env.list("DJANGO_CORS_ALLOWED_ORIGINS", default=[])
 # Your stuff...
 # ------------------------------------------------------------------------------

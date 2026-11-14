@@ -1,5 +1,7 @@
+from rest_framework.authtoken.views import ObtainAuthToken
 from rest_framework.generics import CreateAPIView
 from rest_framework.permissions import AllowAny
+from rest_framework.throttling import ScopedRateThrottle
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework_simplejwt.views import TokenObtainPairView
 
@@ -18,8 +20,17 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
 
 class CustomTokenObtainPairView(TokenObtainPairView):
     serializer_class = CustomTokenObtainPairSerializer
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = "auth"
 
 
 class UserRegistrationView(CreateAPIView):
     serializer_class = UserRegistrationSerializer
     permission_classes = [AllowAny]
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = "auth"
+
+
+class ThrottledObtainAuthToken(ObtainAuthToken):
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = "auth"
