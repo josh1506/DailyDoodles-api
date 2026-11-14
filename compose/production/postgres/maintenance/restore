@@ -8,6 +8,10 @@
 ###
 ### Usage:
 ###     $ docker-compose -f <environment>.yml (exec |run --rm) postgres restore <1>
+###
+### Safety: the archive is checked and restored into a staging database first. The live
+### database is replaced only after a fully successful restore, and is kept (renamed to
+### <db>_pre_restore_<timestamp>) rather than dropped. Stop the app before restoring.
 
 
 set -o errexit
@@ -43,13 +47,28 @@ export PGUSER="${POSTGRES_USER}"
 export PGPASSWORD="${POSTGRES_PASSWORD}"
 export PGDATABASE="${POSTGRES_DB}"
 
-message_info "Dropping the database..."
-dropdb "${PGDATABASE}"
+message_info "Checking the backup archive..."
+if ! gzip --test "${backup_filename}"; then
+    message_error "The backup archive is damaged. The '${POSTGRES_DB}' database was not touched."
+    exit 1
+fi
 
-message_info "Creating a new database..."
-createdb --owner="${POSTGRES_USER}"
+stamp="$(date +'%Y_%m_%dT%H_%M_%S')"
+staging_db="${POSTGRES_DB}_restore_${stamp}"
+previous_db="${POSTGRES_DB}_pre_restore_${stamp}"
 
-message_info "Applying the backup to the new database..."
-gunzip -c "${backup_filename}" | psql "${POSTGRES_DB}"
+message_info "Restoring into the staging database '${staging_db}'..."
+createdb --owner="${POSTGRES_USER}" "${staging_db}"
+# ON_ERROR_STOP + single transaction: any SQL error aborts the whole restore (psql otherwise exits 0).
+if ! gunzip -c "${backup_filename}" | psql --quiet --set ON_ERROR_STOP=1 --single-transaction --dbname "${staging_db}" > /dev/null; then
+    message_error "The restore failed. The '${POSTGRES_DB}' database was not touched; '${staging_db}' is left for inspection."
+    exit 1
+fi
 
-message_success "The '${POSTGRES_DB}' database has been restored from the '${backup_filename}' backup."
+message_info "Replacing '${POSTGRES_DB}' (kept as '${previous_db}')..."
+psql --quiet --set ON_ERROR_STOP=1 --single-transaction --dbname postgres <<SQL
+ALTER DATABASE "${POSTGRES_DB}" RENAME TO "${previous_db}";
+ALTER DATABASE "${staging_db}" RENAME TO "${POSTGRES_DB}";
+SQL
+
+message_success "The '${POSTGRES_DB}' database has been restored from the '${backup_filename}' backup. The previous data is kept in '${previous_db}'; drop it once the restore is verified."

@@ -33,6 +33,8 @@ export PGDATABASE="${POSTGRES_DB}"
 
 backup_filename="${BACKUP_FILE_PREFIX}_$(date +'%Y_%m_%dT%H_%M_%S').sql.gz"
 pg_dump | gzip > "${BACKUP_DIR_PATH}/${backup_filename}"
+# Fail loudly if the archive we just wrote is unreadable.
+gzip --test "${BACKUP_DIR_PATH}/${backup_filename}"
 
 
 message_success "'${POSTGRES_DB}' database backup '${backup_filename}' has been created and placed in '${BACKUP_DIR_PATH}'."
