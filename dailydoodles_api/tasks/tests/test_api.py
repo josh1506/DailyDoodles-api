@@ -85,9 +85,7 @@ def test_cannot_move_own_task_into_another_users_list(alice, bob):
     task = Task.objects.create(user=alice, title="mine")
     bobs_list = TaskList.objects.create(user=bob, title="private")
 
-    response = client_for(alice).put(
-        f"{TASKS}{task.pk}", {"title": "mine", "task_list": bobs_list.pk}, format="json"
-    )
+    response = client_for(alice).put(f"{TASKS}{task.pk}", {"title": "mine", "task_list": bobs_list.pk}, format="json")
 
     assert response.status_code == 400
     task.refresh_from_db()
