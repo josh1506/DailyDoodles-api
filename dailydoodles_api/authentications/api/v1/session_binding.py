@@ -11,7 +11,6 @@ Keep this module free of view imports: DRF imports it while loading rest_framewo
 """
 from django.conf import settings
 from django.utils.crypto import constant_time_compare
-from django.utils.translation import gettext_lazy as _
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework_simplejwt.exceptions import InvalidToken
 
@@ -38,5 +37,5 @@ class SessionBoundJWTAuthentication(JWTAuthentication):
     def get_user(self, validated_token):
         user = super().get_user(validated_token)
         if not token_matches_user(validated_token, user):
-            raise InvalidToken(_("Token is no longer valid for this account."))
+            raise InvalidToken("Token is no longer valid for this account.")
         return user

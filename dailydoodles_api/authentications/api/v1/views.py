@@ -1,5 +1,4 @@
 from django.contrib.auth import get_user_model
-from django.utils.translation import gettext_lazy as _
 from drf_spectacular.contrib.rest_framework_simplejwt import SimpleJWTScheme
 from drf_spectacular.utils import extend_schema_serializer
 from rest_framework.authtoken.views import ObtainAuthToken
@@ -55,7 +54,7 @@ class SessionBoundTokenRefreshSerializer(TokenRefreshSerializer):
             .first()
         )
         if user is None or not token_matches_user(token, user):
-            raise InvalidToken(_("Token is no longer valid for this account."))
+            raise InvalidToken("Token is no longer valid for this account.")
         return super().validate(attrs)
 
 
