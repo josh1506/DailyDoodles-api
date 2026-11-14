@@ -4,6 +4,9 @@ from dailydoodles_api.tasks.models import Task, TaskList
 
 
 class TaskSerializer(serializers.ModelSerializer):
+    # Bounded at the API (threat model F6); the column stays TEXT, so existing rows are untouched.
+    description = serializers.CharField(max_length=10_000, allow_blank=True, allow_null=True, required=False)
+
     class Meta:
         model = Task
         fields = (

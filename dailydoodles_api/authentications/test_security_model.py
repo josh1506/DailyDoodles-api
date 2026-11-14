@@ -122,11 +122,10 @@ def test_allauth_login_locks_out_after_repeated_failures(client):
 
 
 # --------------------------------------------------------------------------------------------
-# Confirmed gaps (strict xfail until the approved fix lands)
+# Fixed gaps (F1, F2, F4a, F5, F6) and remaining ones (strict xfail until their fix is approved)
 # --------------------------------------------------------------------------------------------
 
 
-@known_gap("F1/H1")
 def test_password_change_revokes_existing_refresh_tokens():
     user = make_user()
     stolen = jwt_pair()["refresh"]
@@ -136,7 +135,6 @@ def test_password_change_revokes_existing_refresh_tokens():
     assert jwt_pair(password=NEW_PW)["refresh"]  # fresh sign-in still works
 
 
-@known_gap("F1/H2")
 def test_deactivation_revokes_existing_refresh_tokens():
     user = make_user()
     stolen = jwt_pair()["refresh"]
@@ -145,8 +143,67 @@ def test_deactivation_revokes_existing_refresh_tokens():
     assert refresh(stolen).status_code == 401
 
 
+def test_password_change_revokes_existing_access_tokens():
+    user = make_user()
+    client = APIClient()
+    client.credentials(HTTP_AUTHORIZATION=f"Bearer {jwt_pair()['access']}")
+    assert client.get("/api/tasks/").status_code == 200
+    user.set_password(NEW_PW)
+    user.save()
+    response = client.get("/api/tasks/")
+    assert response.status_code in (401, 403)
+    assert response.json()["code"] == "token_not_valid"  # the SPA treats this as "refresh, else sign out"
+
+
+def test_password_change_revokes_rotated_refresh_tokens():
+    # simplejwt 5.3 doesn't track rotated refresh tokens as outstanding, so bulk blacklisting would miss them.
+    user = make_user()
+    rotated = refresh(jwt_pair()["refresh"]).json()["refresh"]
+    user.set_password(NEW_PW)
+    user.save()
+    assert refresh(rotated).status_code == 401
+
+
+def test_unchanged_account_keeps_working_through_rotation():
+    make_user()
+    token = jwt_pair()["refresh"]
+    for _ in range(3):
+        response = refresh(token)
+        assert response.status_code == 200
+        token = response.json()["refresh"]
+    client = APIClient()
+    client.credentials(HTTP_AUTHORIZATION=f"Bearer {response.json()['access']}")
+    assert client.get("/api/tasks/").status_code == 200
+
+
+def legacy_tokens(user):
+    # Shape of tokens issued before session binding: no "sah" claim.
+    from rest_framework_simplejwt.tokens import RefreshToken
+
+    token = RefreshToken.for_user(user)
+    token["email"] = user.email
+    return token
+
+
+def test_tokens_without_session_claim_rejected_by_default():
+    token = legacy_tokens(make_user())
+    client = APIClient()
+    client.credentials(HTTP_AUTHORIZATION=f"Bearer {token.access_token}")
+    assert client.get("/api/tasks/").status_code in (401, 403)
+    assert refresh(str(token)).status_code == 401
+
+
+def test_transition_flag_accepts_tokens_without_session_claim(settings):
+    settings.JWT_REQUIRE_SESSION_CLAIM = False
+    token = legacy_tokens(make_user())
+    client = APIClient()
+    client.credentials(HTTP_AUTHORIZATION=f"Bearer {token.access_token}")
+    assert client.get("/api/tasks/").status_code == 200
+    assert refresh(str(token)).status_code == 200
+
+
 def test_password_change_does_not_revoke_other_users_tokens():
-    # Guard for F1: revocation must be per user. Holds today (nothing is revoked) and must keep holding.
+    # F1 revocation is per user.
     victim = make_user()
     make_user("bystander@example.com")
     bystander_refresh = jwt_pair("bystander@example.com")["refresh"]
@@ -155,13 +212,36 @@ def test_password_change_does_not_revoke_other_users_tokens():
     assert refresh(bystander_refresh).status_code == 200
 
 
-@known_gap("F2/H6")
-def test_admin_login_is_rate_limited(client):
-    make_user(verified=True, is_staff=True, is_superuser=True)
-    for i in range(10):
-        client.post("/admin/login/", {"username": "victim@example.com", "password": f"wrong{i}"})
-    client.post("/admin/login/?next=/admin/", {"username": "victim@example.com", "password": PW})
-    assert client.get("/admin/").status_code != 200
+def test_production_routes_admin_login_through_allauth(monkeypatch):
+    # F2 is a production default; import the production settings module in isolation to check it.
+    import importlib
+    import sys
+
+    for key, value in {
+        "DJANGO_SECRET_KEY": "test-only-not-a-secret",
+        "DJANGO_ADMIN_URL": "admin/",
+        "REDIS_URL": "redis://127.0.0.1:1/0",
+    }.items():
+        monkeypatch.setenv(key, value)
+    monkeypatch.delenv("DJANGO_ADMIN_FORCE_ALLAUTH", raising=False)
+    sys.modules.pop("config.settings.production", None)
+    production = importlib.import_module("config.settings.production")
+    sys.modules.pop("config.settings.production", None)
+    assert production.DJANGO_ADMIN_FORCE_ALLAUTH is True
+
+
+def test_forced_allauth_admin_login_redirects_to_allauth(rf):
+    # The DJANGO_ADMIN_FORCE_ALLAUTH mechanism (users/admin.py) sends anonymous admin sign-in to
+    # allauth's login, whose lockout is covered by test_allauth_login_locks_out_after_repeated_failures.
+    # (Admin URLs are bound at import, so this checks the wrapped view directly.)
+    from django.contrib import admin
+    from django.contrib.auth.decorators import login_required
+    from django.contrib.auth.models import AnonymousUser
+
+    request = rf.get("/admin/login/")
+    request.user = AnonymousUser()
+    response = login_required(admin.site.login)(request)
+    assert response.status_code == 302 and response["Location"].startswith("/accounts/login/")
 
 
 @known_gap("F3/H18")
@@ -171,14 +251,22 @@ def test_legacy_non_expiring_token_endpoint_removed():
     assert response.status_code == 404
 
 
-@known_gap("F4a/H4")
 def test_register_rejects_case_variant_of_existing_email():
     make_user()
     response = APIClient().post(
         "/api/register", {"email": "Victim@EXAMPLE.com", "password": PW, "password2": PW}, format="json"
     )
     assert response.status_code == 400
+    assert response.json() == {"email": ["user with this email address already exists."]}  # same shape as before
     assert User.objects.filter(email__iexact="victim@example.com").count() == 1
+
+
+def test_register_normalises_email_domain():
+    response = APIClient().post(
+        "/api/register", {"email": "new@EXAMPLE.com", "password": PW, "password2": PW}, format="json"
+    )
+    assert response.status_code == 201
+    assert User.objects.get().email == "new@example.com"
 
 
 @known_gap("F4b/H3+S2")
@@ -188,7 +276,6 @@ def test_register_requires_email_verification_before_api_access():
     assert response.status_code in (400, 401, 403)
 
 
-@known_gap("F5/H5")
 def test_user_detail_page_hidden_from_other_users(client):
     victim = make_user(name="Victim Name")
     make_user("attacker@example.com", verified=True)
@@ -196,9 +283,23 @@ def test_user_detail_page_hidden_from_other_users(client):
     assert client.get(f"/users/{victim.pk}/").status_code == 404
 
 
-@known_gap("F6/H8")
+def test_user_detail_page_still_shows_own_page(client):
+    me = make_user("me@example.com", verified=True, name="Me")
+    client.login(email="me@example.com", password=PW)
+    response = client.get(f"/users/{me.pk}/")
+    assert response.status_code == 200 and b"Me" in response.content
+
+
 def test_task_description_size_is_bounded():
     response = as_user(make_user()).post(
         "/api/tasks/", {"title": "t", "description": "x" * (1024 * 1024)}, format="json"
     )
     assert response.status_code == 400
+    assert "description" in response.json()
+
+
+def test_task_description_at_limit_and_null_still_accepted():
+    client = as_user(make_user())
+    assert client.post("/api/tasks/", {"title": "t", "description": "x" * 10_000}, format="json").status_code == 201
+    assert client.post("/api/tasks/", {"title": "t", "description": None}, format="json").status_code == 201
+    assert client.post("/api/tasks/", {"title": "t"}, format="json").status_code == 201

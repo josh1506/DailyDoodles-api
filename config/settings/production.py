@@ -74,6 +74,9 @@ EMAIL_SUBJECT_PREFIX = env(
 )
 
 # ADMIN
+# Route admin sign-in through allauth so it gets allauth's failed-login lockout (threat model F2).
+# Staff need a verified EmailAddress. Override with DJANGO_ADMIN_FORCE_ALLAUTH=False only deliberately.
+DJANGO_ADMIN_FORCE_ALLAUTH = env.bool("DJANGO_ADMIN_FORCE_ALLAUTH", default=True)
 # ------------------------------------------------------------------------------
 # Django Admin URL regex.
 ADMIN_URL = env("DJANGO_ADMIN_URL")

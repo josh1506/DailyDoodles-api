@@ -324,7 +324,8 @@ REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
         "rest_framework.authentication.SessionAuthentication",
         "rest_framework.authentication.TokenAuthentication",
-        "rest_framework_simplejwt.authentication.JWTAuthentication",
+        # simplejwt JWTAuthentication + check that the token still matches the account (threat model F1)
+        "dailydoodles_api.authentications.api.v1.session_binding.SessionBoundJWTAuthentication",
     ),
     "DEFAULT_PERMISSION_CLASSES": ("rest_framework.permissions.IsAuthenticated",),
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
@@ -346,6 +347,10 @@ SPECTACULAR_SETTINGS = {
 
 # Your stuff...
 # ------------------------------------------------------------------------------
+# Reject JWTs issued before session binding existed (forces one re-login after deploy).
+# Set False only for a short transition window: pre-existing stolen tokens stay usable while it is off.
+JWT_REQUIRE_SESSION_CLAIM = env.bool("DJANGO_JWT_REQUIRE_SESSION_CLAIM", default=True)
+
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(minutes=30),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=30),
