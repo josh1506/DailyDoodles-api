@@ -74,6 +74,9 @@ EMAIL_SUBJECT_PREFIX = env(
 )
 
 # ADMIN
+# Route admin sign-in through allauth so it gets allauth's failed-login lockout (threat model F2).
+# Staff need a verified EmailAddress. Override with DJANGO_ADMIN_FORCE_ALLAUTH=False only deliberately.
+DJANGO_ADMIN_FORCE_ALLAUTH = env.bool("DJANGO_ADMIN_FORCE_ALLAUTH", default=True)
 # ------------------------------------------------------------------------------
 # Django Admin URL regex.
 ADMIN_URL = env("DJANGO_ADMIN_URL")
@@ -139,5 +142,10 @@ LOGGING = {
 SPECTACULAR_SETTINGS["SERVERS"] = [  # noqa: F405
     {"url": "https://example.com", "description": "Production server"},
 ]
+# Traefik is the one proxy in front of gunicorn; trust exactly that many X-Forwarded-For hops
+# so throttling keys on the real client IP and cannot be bypassed with a forged header.
+REST_FRAMEWORK["NUM_PROXIES"] = env.int("DJANGO_NUM_PROXIES", default=1)  # noqa: F405
+# Empty by default (same-origin only, unchanged behaviour). Set when the SPA is served from another origin.
+CORS_ALLOWED_ORIGINS = env.list("DJANGO_CORS_ALLOWED_ORIGINS", default=[])
 # Your stuff...
 # ------------------------------------------------------------------------------

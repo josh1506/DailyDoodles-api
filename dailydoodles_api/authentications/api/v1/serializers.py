@@ -17,6 +17,14 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
             "password2",
         )
 
+    def validate_email(self, value):
+        # The model's unique constraint is case-sensitive, so "Victim@Example.com" could sit next to
+        # "victim@example.com" (threat model F4a). Same message as the model's unique validator.
+        email = User.objects.normalize_email(value)
+        if User.objects.filter(email__iexact=email).exists():
+            raise serializers.ValidationError("user with this email address already exists.")
+        return email
+
     def validate(self, attrs):
         if attrs["password"] != attrs["password2"]:
             raise serializers.ValidationError({"password": "Password fields didn't match."})

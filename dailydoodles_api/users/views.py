@@ -13,6 +13,10 @@ class UserDetailView(LoginRequiredMixin, DetailView):
     slug_field = "id"
     slug_url_kwarg = "id"
 
+    def get_queryset(self):
+        # Other users' pages answer 404 (threat model F5).
+        return super().get_queryset().filter(pk=self.request.user.pk)
+
 
 user_detail_view = UserDetailView.as_view()
 

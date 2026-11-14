@@ -5,7 +5,8 @@ from django.urls import include, path
 from django.views import defaults as default_views
 from django.views.generic import TemplateView
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
-from rest_framework.authtoken.views import obtain_auth_token
+
+from dailydoodles_api.authentications.api.v1.views import ThrottledObtainAuthToken
 
 urlpatterns = [
     path("", TemplateView.as_view(template_name="pages/home.html"), name="home"),
@@ -24,7 +25,7 @@ urlpatterns += [
     path("api/", include("config.api_router")),
     path("api/tasks/", include("dailydoodles_api.tasks.api.v1.urls")),
     # DRF auth token
-    path("auth-token/", obtain_auth_token),
+    path("auth-token/", ThrottledObtainAuthToken.as_view()),
     path("api/", include("dailydoodles_api.authentications.api.v1.urls")),
     path("api/schema/", SpectacularAPIView.as_view(), name="api-schema"),
     path(
